@@ -5,13 +5,13 @@
 
 > [!NOTE]
 > Prerequisites: The EoS you want to implement must be formatted like the other `MESA` EoS tables.
-### Using the placerholder id
-`mesa_custom_EoS` comes with a placeholder id for user-defined EoS. To use it, you need to do the following:
+### Using the placeholder
+`mesa_custom_EoS` comes with a placeholder for your EoS. This placeholder only works if you use equally spaced EoS tables from 0 to 1 in steps of 0.1 in X and Z. To use it, you need to do the following:
 1. Add your EoS tables to the `src/data` folder of your work directory.
 2. Either rename the EoS folder inside `src/data` to `my_eosDT` and the EoS tables to `my_eosDT_<Z>z<X>x.data`, where `<Z>` and `<X>` are the $Z$ and $X$ values of the EoS table in percentage (e.g., `my_eosDT_50z20x.data`), or change `data_dir_name` and `data_file_name` in `custom_eos.f90` (line 356 and 357) to the name of your EoS folder and the name of your EoS tables, respectively.
 3. Run `./mk` to compile the code and make sure that `eos_integer_ctrl(1)` is set to `5` in your `inlist`.
 ### Creating your own EoS entry
-To implement your own EoS, you need to do the 
+To go one step furhter and implement your own EoS(s), with different X and Z scaling, you need to do the 
 following:
 1. Add the folder that contains your EoS tables to the `src/data` folder of your work directory.
 Then inside `custom_eos.f90`:
@@ -36,43 +36,36 @@ type (EosDT_XZ_Info), dimension(num_<eos_name>_Xs, num_<eos_name>_Zs), target ::
 ```Fortran
 integer, parameter :: eosdt_<eos_name> = 4
 ```
-1. Inside the `eos_init_custom_eos subroutine`, add a `pointer` of type `DT_XZ_Info` called `<eos_name>_ptr`. It will be used to populate `<eos_name>_XZ_struct`. In addition, set `<eos_name>_XZ_loaded` to `.false.`. The `DT_XZ_Info` type has the following properties: `nZs` stores the number of $Z$ values in your EoS tables, `Zs` is a 1D array that contains these $Z$ values, `nXs_for_Z` is a 1D array that contains the number of $X$ values for each $Z$ value and `Xs_for_Z` is a 2D array that contains the $X$ values for each $Z$ value. Check out the definition of `qeos_sio2` inside the subroutine for explicit numerical values.
+1. Inside the `eos_init_custom_eos subroutine`, add a `pointer` of type `DT_XZ_Info` called `<eos_name>_ptr`. It will be used to populate `<eos_name>_XZ_struct`. In addition, set `<eos_name>_XZ_loaded` to `.false.`. The `DT_XZ_Info` type has the following properties: `nZs` stores the number of $Z$ values in your EoS tables, `Zs` is a 1D array that contains these $Z$ values, `nXs_for_Z` is a 1D array that contains the number of $X$ values for each $Z$ value and `Xs_for_Z` is a 2D array that contains the $X$ values for each $Z$ value.
 
-For the example from above, we can make use of the already defined `qeos_sio2_XZ_struct` variable:
+For the example from above, we can make use:
 ```Fortran
 
 ! pointer to the EoS XZ structure
-type (DT_XZ_Info), pointer :: qeos_sio2_XZ_ptr, qeos_h2o_XZ_ptr, cms_qeos_h2o_XZ_ptr, <eos_name>_XZ_ptr
+type (DT_XZ_Info), pointer :: <eos_name>_XZ_ptr
 
 ! #Z values in the EoS XZ structure
-real(dp) :: qeos_sio2_spacing(1:11) = &
+real(dp) :: <eos_name>_spacing(1:11) = &
 	(/ 0.00d0, 0.1d0, 0.2d0, 0.3d0, 0.4d0, 0.5d0, 0.6d0, &
 	0.7d0, 0.8d0, 0.9d0, 1.0d0 /)
 
 ! tracking if a table was already loaded
-qeos_sio2_XZ_loaded(:,:)=.false.
-qeos_h2o_XZ_loaded(:,:)=.false.
-cms_qeos_h2o_XZ_loaded(:,:)=.false.
 <eos_name>_XZ_loaded(:,:)=.false.
 
 ! < ... code populating the other "struct" variables ... >
 
 !> <eos_name>
 <eos_name>_XZ_ptr => <eos_name>_XZ_struct
-<eos_name>_ptr % nZs = qeos_sio2_XZ_ptr % nZs
-<eos_name>_ptr % Zs(1: cms_qeos_h2o_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % Zs(1: <eos_name>_ptr % nZs)
-<eos_name>_ptr % nXs_for_Z(1: cms_qeos_h2o_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % nXs_for_Z(1: qeos_sio2_XZ_ptr % nZs)
+<eos_name>_ptr % nZs = <number of z values>
+<eos_name>_ptr % Zs(1: <eos_name>_ptr % nZs) = <Z values>
+<eos_name>_ptr % nXs_for_Z(1: <eos_name>_ptr % nZs) = <eos_name>_ptr % nXs_for_Z(1: <eos_name>_ptr % nZs)
 <eos_name>_XZ_ptr % Xs_for_Z(1: <eos_name>_XZ_ptr % nXs_for_Z(1), 1: <eos_name>_XZ_ptr % nZs) = &
-qeos_sio2_XZ_ptr % Xs_for_Z(1: qeos_sio2_XZ_ptr % nXs_for_Z(1), 1: qeos_sio2_XZ_ptr % nZs)
+<eos_name>_ptr % Xs_for_Z(1: <eos_name>_ptr % nXs_for_Z(1), 1: <eos_name>_ptr % nZs)
 ```
-8. Now, go through the rest of the code and anywhere the code checks for `which_eosdt`, add an `else if` statement for your EoS. For example:
+1. Now, go through the rest of the code and anywhere the code checks for `which_eosdt`, add an `else if` statement for your EoS. For example:
 ```Fortran
-if (which_eosdt == eosdt_qeos_sio2) then
-    xz => qeos_sio2_XZ_struct
-else if (which_eosdt == eosdt_qeos_h2o) then
-    xz => qeos_h2o_XZ_struct
-else if (which_eosdt == eosdt_cms_qeos_h2o) then
-    xz => cms_qeos_h2o_XZ_struct
+if (which_eosdt == eosdt_my_eos) then
+    ep => my_eos_XZ_struct
 else if (which_eosdt == eosdt_<eos_name>) then
 	xz => <eos_name>_XZ_struct
 else
@@ -81,4 +74,4 @@ else
     return
 end if
 ```
-9. Lastely, run `./mk` to compile the code and change the `eos_integer_ctrl(1)` to the integer you defined in step 6, i.e. `eosdt_<eos_name>`.
+1. Lastely, run `./mk` to compile the code and change the `eos_integer_ctrl(1)` to the integer you defined in step 6, i.e. `eosdt_<eos_name>`.

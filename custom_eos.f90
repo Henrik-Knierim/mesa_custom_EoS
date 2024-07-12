@@ -37,40 +37,24 @@ module custom_eos
 
    integer, parameter :: file_max_num_logQs = 1000
 
-   integer, parameter :: num_qeos_sio2_Zs = 11
-   integer, parameter :: num_qeos_sio2_Xs = 11
-
    ! values for a user-supplied EoS
    integer, parameter :: num_my_eos_Zs = 11
    integer, parameter :: num_my_eos_Xs = 11
-
-   logical, dimension(num_qeos_sio2_Xs, num_qeos_sio2_Zs) :: qeos_sio2_XZ_loaded, qeos_h2o_XZ_loaded, cms_qeos_h2o_XZ_loaded, cms_qeos_mixture_XZ_loaded
 
    ! test if the default EoS works
    logical, dimension(num_my_eos_Xs, num_my_eos_Zs) :: my_eos_XZ_loaded
 
    ! the spacing of the qeos_h2o grid is the same; hence, we can use the qeos_sio2 parameters
 
-   type (DT_XZ_Info), target :: qeos_sio2_XZ_struct, qeos_h2o_XZ_struct, cms_qeos_h2o_XZ_struct, cms_qeos_mixture_XZ_struct
-
    ! user-supplied EoS
    type (DT_XZ_Info), target :: my_eos_XZ_struct
-
-   type (EosDT_XZ_Info), dimension(num_qeos_sio2_Xs, num_qeos_sio2_Zs), target :: &
-      qeos_sio2_XZ_data, qeos_h2o_XZ_data, cms_qeos_h2o_XZ_data, cms_qeos_mixture_XZ_data
 
    ! test if the default EoS works
    type (EosDT_XZ_Info), dimension(num_my_eos_Xs, num_my_eos_Zs), target :: &
       my_eos_XZ_data
 
-   ! id for the EoS
-   integer, parameter :: eosdt_qeos_sio2 = 1
-   integer, parameter :: eosdt_qeos_h2o = 2
-   integer, parameter :: eosdt_cms_qeos_h2o = 3
-   integer, parameter :: eosdt_cms_qeos_mixture = 4
-
    ! convinience id for a user-supplied EoS
-   integer, parameter :: eosdt_my_eos = 5
+   integer, parameter :: eosdt_my_eos = 1
 
    ! custom controls
    logical, parameter :: my_use_cache_for_eos = .true.
@@ -82,78 +66,16 @@ contains
    subroutine eos_init_custom_eos
       ! for looping
       integer :: i, j
-      ! pointer to the EoS XZ structure
-      type (DT_XZ_Info), pointer :: qeos_sio2_XZ_ptr, qeos_h2o_XZ_ptr, cms_qeos_h2o_XZ_ptr, cms_qeos_mixture_XZ_ptr
 
       ! test if the default EoS works
       type (DT_XZ_Info), pointer :: my_eos_XZ_ptr
-
-      ! #Z values in the EoS XZ structure
-      real(dp) :: qeos_sio2_spacing(1:11) = &
-         (/ 0.00d0, 0.1d0, 0.2d0, 0.3d0, 0.4d0, 0.5d0, 0.6d0, &
-         0.7d0, 0.8d0, 0.9d0, 1.0d0 /)
 
       real(dp) :: my_eos_spacing(1:11) = &
          (/ 0.00d0, 0.1d0, 0.2d0, 0.3d0, 0.4d0, 0.5d0, 0.6d0, &
          0.7d0, 0.8d0, 0.9d0, 1.0d0 /)
 
       ! tracking if a table was already loaded
-      qeos_sio2_XZ_loaded(:,:)=.false.
-      qeos_h2o_XZ_loaded(:,:)=.false.
-      cms_qeos_h2o_XZ_loaded(:,:)=.false.
-      cms_qeos_mixture_XZ_loaded(:,:)=.false.
-
-      my_eos_XZ_loaded(:,:)=.false.
-
-      !> qeos_sio2
-      ! link EoS structures
-      qeos_sio2_XZ_ptr => qeos_sio2_XZ_struct
-
-      ! #Z values in the grid
-      qeos_sio2_XZ_ptr % nZs = num_qeos_sio2_Zs !size(qeos_sio2_spacing)
-
-      ! Z values of the EoS grid
-      qeos_sio2_XZ_ptr % Zs(1: qeos_sio2_XZ_ptr % nZs) = qeos_sio2_spacing
-
-      qeos_sio2_XZ_ptr % nXs_for_Z(1: qeos_sio2_XZ_ptr % nZs) = &
-         (/11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1/)
-
-      do i = 1, qeos_sio2_XZ_ptr % nZs
-         ! X values of the EoS XZ grid
-         j = qeos_sio2_XZ_ptr % nXs_for_Z(i)
-         qeos_sio2_XZ_ptr % Xs_for_Z(1: j, i) = qeos_sio2_spacing(1: j)
-      end do
-
-      !> qeos_h2o
-      qeos_h2o_XZ_ptr => qeos_h2o_XZ_struct
-
-      ! since we are using the same grid for both EoS, we can just copy the
-      ! values from the previous EoS
-      qeos_h2o_XZ_ptr % nZs = qeos_sio2_XZ_ptr % nZs
-      qeos_h2o_XZ_ptr % Zs(1: qeos_h2o_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % Zs(1: qeos_sio2_XZ_ptr % nZs)
-      qeos_h2o_XZ_ptr % nXs_for_Z(1: qeos_h2o_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % nXs_for_Z(1: qeos_sio2_XZ_ptr % nZs)
-      qeos_h2o_XZ_ptr % Xs_for_Z(1: qeos_h2o_XZ_ptr % nXs_for_Z(1), 1: qeos_h2o_XZ_ptr % nZs) = &
-         qeos_sio2_XZ_ptr % Xs_for_Z(1: qeos_sio2_XZ_ptr % nXs_for_Z(1), 1: qeos_sio2_XZ_ptr % nZs)
-
-      !> cms_qeos_h2o
-      cms_qeos_h2o_XZ_ptr => cms_qeos_h2o_XZ_struct
-
-      ! see qeos_h2o
-      cms_qeos_h2o_XZ_ptr % nZs = qeos_sio2_XZ_ptr % nZs
-      cms_qeos_h2o_XZ_ptr % Zs(1: cms_qeos_h2o_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % Zs(1: cms_qeos_h2o_XZ_ptr % nZs)
-      cms_qeos_h2o_XZ_ptr % nXs_for_Z(1: cms_qeos_h2o_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % nXs_for_Z(1: qeos_sio2_XZ_ptr % nZs)
-      cms_qeos_h2o_XZ_ptr % Xs_for_Z(1: cms_qeos_h2o_XZ_ptr % nXs_for_Z(1), 1: cms_qeos_h2o_XZ_ptr % nZs) = &
-         qeos_sio2_XZ_ptr % Xs_for_Z(1: qeos_sio2_XZ_ptr % nXs_for_Z(1), 1: qeos_sio2_XZ_ptr % nZs)
-
-      !> cms_qeos_h2o_smoothed
-      cms_qeos_mixture_XZ_ptr => cms_qeos_mixture_XZ_struct
-
-      ! see qeos_h2o
-      cms_qeos_mixture_XZ_ptr % nZs = qeos_sio2_XZ_ptr % nZs
-      cms_qeos_mixture_XZ_ptr % Zs(1: cms_qeos_mixture_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % Zs(1: cms_qeos_mixture_XZ_ptr % nZs)
-      cms_qeos_mixture_XZ_ptr % nXs_for_Z(1: cms_qeos_mixture_XZ_ptr % nZs) = qeos_sio2_XZ_ptr % nXs_for_Z(1: qeos_sio2_XZ_ptr % nZs)
-      cms_qeos_mixture_XZ_ptr % Xs_for_Z(1: cms_qeos_mixture_XZ_ptr % nXs_for_Z(1), 1: cms_qeos_mixture_XZ_ptr % nZs) = &
-         qeos_sio2_XZ_ptr % Xs_for_Z(1: qeos_sio2_XZ_ptr % nXs_for_Z(1), 1: qeos_sio2_XZ_ptr % nZs)
+      my_eos_XZ_loaded(:,:) = .false.
 
       ! user-supplied EoS
 
@@ -219,20 +141,7 @@ contains
       integer,intent(in) :: iz, ix
       integer, intent(out) :: ierr
 
-      if (which_eosdt == eosdt_qeos_sio2) then
-         ep => qeos_sio2_XZ_data(ix,iz)
-         if (qeos_sio2_XZ_loaded(ix,iz)) return
-      else if (which_eosdt == eosdt_qeos_h2o) then
-         ep => qeos_h2o_XZ_data(ix,iz)
-         if (qeos_h2o_XZ_loaded(ix,iz)) return
-      else if (which_eosdt == eosdt_cms_qeos_h2o) then
-         ep => cms_qeos_h2o_XZ_data(ix,iz)
-         if (cms_qeos_h2o_XZ_loaded(ix,iz)) return
-      else if (which_eosdt == eosdt_cms_qeos_mixture) then
-         ep => cms_qeos_mixture_XZ_data(ix,iz)
-         if (cms_qeos_mixture_XZ_loaded(ix,iz)) return
-      ! test if the default EoS works
-      else if (which_eosdt == eosdt_my_eos) then
+      if (which_eosdt == eosdt_my_eos) then
          ep => my_eos_XZ_data(ix,iz)
          if (my_eos_XZ_loaded(ix,iz)) return
       else
@@ -241,16 +150,7 @@ contains
       end if
 
 !$OMP CRITICAL(eosDT_load)
-      if (which_eosdt == eosdt_qeos_sio2) then
-         if (.not. qeos_sio2_XZ_loaded(ix,iz)) call do_read
-      else if (which_eosdt == eosdt_qeos_h2o) then
-         if (.not. qeos_h2o_XZ_loaded(ix,iz)) call do_read
-      else if (which_eosdt == eosdt_cms_qeos_h2o) then
-         if (.not. cms_qeos_h2o_XZ_loaded(ix,iz)) call do_read
-      else if (which_eosdt == eosdt_cms_qeos_mixture) then
-         if (.not. cms_qeos_mixture_XZ_loaded(ix,iz)) call do_read
-         ! test if the default EoS works
-      else if (which_eosdt == eosdt_my_eos) then
+      if (which_eosdt == eosdt_my_eos) then
          if (.not. my_eos_XZ_loaded(ix,iz)) call do_read
       end if
 !$OMP END CRITICAL(eosDT_load)
@@ -260,16 +160,8 @@ contains
       subroutine do_read
          call read_one(ix,iz,ierr)
          if (ierr /= 0) return
-         if (which_eosdt == eosdt_qeos_sio2) then
-            qeos_sio2_XZ_loaded(ix,iz) = .true.
-         else if (which_eosdt == eosdt_qeos_h2o) then
-            qeos_h2o_XZ_loaded(ix,iz) = .true.
-         else if (which_eosdt == eosdt_cms_qeos_h2o) then
-            cms_qeos_h2o_XZ_loaded(ix,iz) = .true.
-         else if (which_eosdt == eosdt_cms_qeos_mixture) then
-            cms_qeos_mixture_XZ_loaded(ix,iz) = .true.
-            ! test if the default EoS works
-         else if (which_eosdt == eosdt_my_eos) then
+
+         if (which_eosdt == eosdt_my_eos) then
             my_eos_XZ_loaded(ix,iz) = .true.
          else
             ierr = -1
@@ -287,16 +179,8 @@ contains
          include 'formats'
          iounit1 = alloc_iounit(ierr); if (ierr /= 0) return
          iounit2 = alloc_iounit(ierr); if (ierr /= 0) return
-         if (which_eosdt == eosdt_qeos_sio2) then
-            xz => qeos_sio2_XZ_struct
-         else if (which_eosdt == eosdt_qeos_h2o) then
-            xz => qeos_h2o_XZ_struct
-         else if (which_eosdt == eosdt_cms_qeos_h2o) then
-            xz => cms_qeos_h2o_XZ_struct
-         else if (which_eosdt == eosdt_cms_qeos_mixture) then
-            xz => cms_qeos_mixture_XZ_struct
-            ! test if the default EoS works
-         else if (which_eosdt == eosdt_my_eos) then
+
+         if (which_eosdt == eosdt_my_eos) then
             xz => my_eos_XZ_struct
          else
             write(*,*) 'unknown which_eosdt supplied'
@@ -336,22 +220,7 @@ contains
       call setstr(Z,Zstr)
       call setstr(X,Xstr)
 
-      if (which_eosdt == eosdt_qeos_sio2) then
-         data_dir_name = '/qeos_sio2_ext-eosDT_data/'
-         data_prefix = 'qeos_sio2_ext-eosDT_'
-
-      else if (which_eosdt == eosdt_qeos_h2o) then
-         data_dir_name = '/qeos_h2o_ext-eosDT_data/'
-         data_prefix = 'qeos_h2o_ext-eosDT_'
-      else if (which_eosdt == eosdt_cms_qeos_h2o) then
-         data_dir_name = '/cms_qeos_h2o_smoothed-eosDT/'
-         data_prefix = 'cms_qeos_h2o_smoothed-eosDT_'
-
-      else if (which_eosdt == eosdt_cms_qeos_mixture) then
-         data_dir_name = '/cms_qeos_mixture_smoothed-eosDT/'
-         data_prefix = 'cms_qeos_mixture_smoothed-eosDT_'
-         ! test if the default EoS works
-      else if (which_eosdt == eosdt_my_eos) then
+      if (which_eosdt == eosdt_my_eos) then
          ! specify the directory and prefix for the user-supplied EoS
          data_dir_name = '/my_eosDT/'
          data_prefix = 'my_eosDT_'
@@ -1745,16 +1614,7 @@ contains
       integer :: i
       rq => eos_handles(handle)
 
-      if (which_eosdt == eosdt_qeos_sio2) then
-         xz => qeos_sio2_XZ_struct
-      else if (which_eosdt == eosdt_qeos_h2o) then
-         xz => qeos_h2o_XZ_struct
-      else if (which_eosdt == eosdt_cms_qeos_h2o) then
-         xz => cms_qeos_h2o_XZ_struct
-      else if (which_eosdt == eosdt_cms_qeos_mixture) then
-         xz => cms_qeos_mixture_XZ_struct
-         ! test if the default EoS works
-      else if (which_eosdt == eosdt_my_eos) then
+      if (which_eosdt == eosdt_my_eos) then
          xz => my_eos_XZ_struct
       else
          write(*,*) 'unknown which_eosdt supplied'
@@ -1776,17 +1636,6 @@ contains
             d_dxa(:,i) = d_dZ
          end select
       end do
-
-      if (res(i_chiT) < 1d-8) then
-         res(i_chiT) = 1d-4
-      end if
-
-      if (res(i_chiRho) < 1d-8) then
-         res(i_chiRho) = 1d-4
-      end if
-      
-      res(i_grad_ad) = max(res(i_grad_ad), 5d-7) ! 5d-7 is the maximum value of grad_ad compatible with 0.00000. (The min EoS value)
-
 
    end subroutine get1_for_eosdt
 
