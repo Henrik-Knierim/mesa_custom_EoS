@@ -344,7 +344,7 @@ contains
       rq => eos_handles(handle)
 
 
-      if (.not. (rq % eos_integer_ctrl(1) == 1)) then
+      if (rq % eos_integer_ctrl(1) /= 1) then
          write(*,*) "my_other_eos_component: eos_integer_ctrl(1) is not set correctly."
          write(*,*) "Currently, only eos_integer_ctrl(1) = 1 (user-defined eos) is supported."
          ierr = 1
