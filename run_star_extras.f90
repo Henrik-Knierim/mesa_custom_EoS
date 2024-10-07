@@ -343,16 +343,10 @@ contains
 
       rq => eos_handles(handle)
 
-      ! which eos to use
-      ! 1: sio2
-      ! 2: h2o
-      ! 3: cms_h2o
-      ! 4: cms_h20_sio2 (half and half)
-      ! 5: user-supplied eos (only works if you supplied a custom eos)
 
-      if (.not. (rq % eos_integer_ctrl(1) > 0 .and. rq % eos_integer_ctrl(1) < 6)) then
+      if (.not. (rq % eos_integer_ctrl(1) == 1)) then
          write(*,*) "my_other_eos_component: eos_integer_ctrl(1) is not set correctly."
-         write(*,*) "Please set eos_integer_ctrl(1) to 1, 2, 3, 4, or 5."
+         write(*,*) "Currently, only eos_integer_ctrl(1) = 1 (user-defined eos) is supported."
          ierr = 1
          return
       end if
@@ -458,6 +452,7 @@ contains
       call load_single_eosDT_table_by_id(which_eosdt, ep, 1, 1, ierr)
       if (ierr /= 0) return
 
+      ! These values need to be adjusted according to your EoS
       logT_min_for_all_custom_eos = ep% logT_min + 0.11d0
       logT_min_for_any_custom_eos = ep% logT_min + 0.10d0
       logT_max_for_all_custom_eos = ep% logT_max - 0.4d0

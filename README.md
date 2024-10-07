@@ -9,7 +9,7 @@
 `mesa_custom_EoS` comes with a placeholder for your EoS. This placeholder only works if you use equally spaced EoS tables from 0 to 1 in steps of 0.1 in X and Z. To use it, you need to do the following:
 1. Add your EoS tables to the `src/data` folder of your work directory.
 2. Either rename the EoS folder inside `src/data` to `my_eosDT` and the EoS tables to `my_eosDT_<Z>z<X>x.data`, where `<Z>` and `<X>` are the $Z$ and $X$ values of the EoS table in percentage (e.g., `my_eosDT_50z20x.data`), or change `data_dir_name` and `data_file_name` in `custom_eos.f90` (line 356 and 357) to the name of your EoS folder and the name of your EoS tables, respectively.
-3. Run `./mk` to compile the code and make sure that `eos_integer_ctrl(1)` is set to `5` in your `inlist`.
+3. Run `./mk` to compile the code and make sure that `eos_integer_ctrl(1)` is set to `1` in your `inlist`.
 ### Creating your own EoS entry
 To go one step furhter and implement your own EoS(s), with different X and Z scaling, you need to do the 
 following:
